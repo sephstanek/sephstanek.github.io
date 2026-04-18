@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETUDE · Tour de Fierce Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cinzel:wght@300;400&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  background: #08070a;
+  color: #e8dcc8;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  cursor: crosshair;
+}
+
+/* ── CANVAS ───────────────────────────────────────────── */
+#cv {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* ── SCREENS ──────────────────────────────────────────── */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+.screen.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── TYPOGRAPHY ───────────────────────────────────────── */
+.eyebrow {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  font-weight: 300;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: rgba(200, 175, 120, 0.48);
+  margin-bottom: 1.6rem;
+}
+.headline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(1.6rem, 4.5vw, 2.8rem);
+  font-weight: 300;
+  line-height: 1.25;
+  color: #e8dcc8;
+  letter-spacing: 0.03em;
+  margin-bottom: 1rem;
+}
+.body-text {
+  font-size: clamp(0.95rem, 2.5vw, 1.05rem);
+  line-height: 1.9;
+  color: rgba(232, 220, 200, 0.55);
+  font-style: italic;
+  max-width: 480px;
+  margin-bottom: 2.2rem;
+}
+
+/* ── BUTTON ───────────────────────────────────────────── */
+.btn {
+  padding: 0.85rem 3rem;
+  background: transparent;
+  border: 1px solid rgba(200, 175, 120, 0.32);
+  color: rgba(232, 220, 200, 0.78);
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  font-weight: 300;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 1px;
+  transition: border-color 0.4s, color 0.4s, letter-spacing 0.4s, box-shadow 0.4s;
+  position: relative;
+  overflow: hidden;
+}
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(200,175,120,0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.btn:hover::before { opacity: 1; }
+.btn:hover {
+  border-color: rgba(200, 175, 120, 0.72);
+  color: #e8dcc8;
+  letter-spacing: 0.42em;
+  box-shadow: 0 0 28px rgba(200, 175, 120, 0.1);
+}
+.btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+  letter-spacing: 0.32em;
+}
+
+/* ── TEXTAREA ─────────────────────────────────────────── */
+.place-textarea {
+  width: 100%;
+  max-width: 560px;
+  min-height: 140px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(200, 175, 120, 0.2);
+  border-radius: 2px;
+  color: #e8dcc8;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  padding: 1rem 1.2rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.3s;
+  margin-bottom: 0.5rem;
+}
+.place-textarea:focus {
+  border-color: rgba(200, 175, 120, 0.5);
+}
+.place-textarea::placeholder {
+  color: rgba(232, 220, 200, 0.24);
+  font-style: italic;
+}
+.char-count {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: rgba(200, 175, 120, 0.3);
+  align-self: flex-end;
+  margin-right: calc(50% - 280px);
+  margin-bottom: 0.8rem;
+}
+@media (max-width: 640px) { .char-count { margin-right: 0; } }
+
+/* ── ERROR ────────────────────────────────────────────── */
+.error-msg {
+  font-size: 0.82rem;
+  color: rgba(220, 140, 120, 0.85);
+  font-style: italic;
+  margin-top: 0.6rem;
+  max-width: 480px;
+  min-height: 1.2rem;
+}
+
+/* ── LOADING ──────────────────────────────────────────── */
+.loader-orb {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(200, 175, 120, 0.18);
+  border-top-color: rgba(200, 175, 120, 0.85);
+  animation: orbSpin 1.2s linear infinite;
+  margin-bottom: 1.2rem;
+}
+@keyframes orbSpin { to { transform: rotate(360deg); } }
+.loader-text {
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  font-weight: 300;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(200, 175, 120, 0.42);
+  animation: textPulse 1.5s ease-in-out infinite;
+}
+@keyframes textPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+/* ── SCENE CAPTION ────────────────────────────────────── */
+#scene-caption {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 2.5rem 2rem 2.2rem;
+  background: linear-gradient(to top,
+    rgba(6,5,8,0.97) 0%,
+    rgba(6,5,8,0.9) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 1.2s ease, transform 1.2s ease;
+  pointer-events: none;
+}
+#scene-caption.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.caption-rule {
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200,175,120,0.4), transparent);
+  margin-bottom: 1rem;
+}
+#cap-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1rem, 3vw, 1.55rem);
+  font-weight: 300;
+  color: #e8dcc8;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.6rem;
+  line-height: 1.3;
+}
+#cap-desc {
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  line-height: 1.85;
+  color: rgba(232, 220, 200, 0.58);
+  font-style: italic;
+  max-width: 600px;
+  margin-bottom: 1.4rem;
+  min-height: 3rem;
+}
+.caption-meta {
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(200, 175, 120, 0.28);
+  margin-bottom: 1.2rem;
+}
+
+/* ── BASELINE DATA (hidden) ───────────────────────────── */
+#baseline-store { display: none; }
+
+/* ── TYPEWRITER CURSOR ────────────────────────────────── */
+.twc {
+  display: inline-block;
+  width: 1.5px;
+  height: 0.88em;
+  background: rgba(200, 175, 120, 0.75);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: twBlink 0.9s step-end infinite;
+}
+@keyframes twBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ── WATERMARK ────────────────────────────────────────── */
+#watermark {
+  position: fixed;
+  bottom: 1.2rem;
+  right: 1.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.5rem;
+  font-weight: 300;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(200, 175, 120, 0.18);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ── PROFILE BADGE ────────────────────────────────────── */
+#profile-badge {
+  position: fixed;
+  top: 1.4rem;
+  right: 1.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.5rem;
+  font-weight: 300;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(200, 175, 120, 0.35);
+  z-index: 25;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s;
+}
+#profile-badge.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ── YOUR API KEY GOES HERE ── -->
+<script>
+  // Paste your Anthropic API key between the quotes on the next line:
+  var ANTHROPIC_API_KEY = "YOUR_API_KEY_HERE";
+</script>
+
+<canvas id="cv"></canvas>
+<div id="watermark">ETUDE · Tour de Fierce Research · tourdefierce.vip</div>
+<div id="profile-badge" id="profile-badge">Baseline captured</div>
+
+<!-- SCREEN 1: WELCOME -->
+<div id="s-welcome" class="screen active">
+  <div class="eyebrow">ETUDE · Empirical Tracking of Universal Development in Esthetics</div>
+  <div class="headline">Before we begin,<br>find your place</div>
+  <div class="body-text">
+    Every authentic aesthetic response originates somewhere.<br>
+    We'll build yours — then the journey begins.
+  </div>
+  <button class="btn" onclick="showScreen('s-describe')">Begin</button>
+</div>
+
+<!-- SCREEN 2: DESCRIBE -->
+<div id="s-describe" class="screen">
+  <div class="eyebrow">Your place</div>
+  <div class="headline" style="font-size: clamp(1.2rem,3.5vw,1.9rem); margin-bottom: 0.7rem">
+    Where do you feel most yourself?
+  </div>
+  <div class="body-text" style="margin-bottom: 1.2rem; font-size: 0.95rem">
+    Describe it — what you see, feel, smell, hear.<br>
+    Who or what is there with you? There are no wrong answers.
+  </div>
+  <textarea
+    id="place-input"
+    class="place-textarea"
+    placeholder="I'm at the bottom of a quiet canyon, lying on a warm flat rock in the middle of a stream…"
+    oninput="onType()"
+    maxlength="1200"
+  ></textarea>
+  <div class="char-count" id="char-count">0 / 1200</div>
+  <div class="error-msg" id="error-msg"></div>
+  <button class="btn" id="gen-btn" onclick="generate()" style="margin-top: 0.8rem">
+    Create my space →
+  </button>
+</div>
+
+<!-- SCREEN 3: LOADING -->
+<div id="s-loading" class="screen">
+  <div class="loader-orb"></div>
+  <div class="loader-text" id="loader-text">Reading your place</div>
+</div>
+
+<!-- SCENE CAPTION (shown over canvas) -->
+<div id="scene-caption">
+  <div class="caption-rule"></div>
+  <div id="cap-title">Your place</div>
+  <div id="cap-desc"></div>
+  <div class="caption-meta" id="cap-meta"></div>
+  <button class="btn" id="begin-btn" onclick="beginEtude()">
+    I am here. Begin ETUDE →
+  </button>
+</div>
+
+<!-- Hidden baseline data store -->
+<div id="baseline-store"></div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+var LOADING_MESSAGES = [
+  "Reading your place",
+  "Building the atmosphere",
+  "Rendering the light",
+  "Preparing your space",
+  "Almost there"
+];
+
+// ─── CANVAS + RENDER ──────────────────────────────────────────────────────────
+var cv = document.getElementById('cv');
+var cx = cv.getContext('2d');
+var W, H, T = 0, scene = null, rafId = null;
+
+function resize() {
+  W = cv.width = window.innerWidth;
+  H = cv.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Click on canvas sends a ripple
+var ripples = [];
+cv.addEventListener('click', function(e) {
+  ripples.push({ x: e.clientX, y: e.clientY, r: 0, op: 0.4 });
+});
+
+function lighten(hex, f) {
+  try {
+    var r = parseInt(hex.slice(1,3),16),
+        g = parseInt(hex.slice(3,5),16),
+        b = parseInt(hex.slice(5,7),16);
+    return 'rgb('+Math.min(255,r+(255-r)*f|0)+','+Math.min(255,g+(255-g)*f|0)+','+Math.min(255,b+(255-b)*f|0)+')';
+  } catch(e) { return hex; }
+}
+
+function drawStarfield() {
+  cx.clearRect(0,0,W,H);
+  var bg = cx.createRadialGradient(W/2,H*0.42,0, W/2,H*0.42, Math.max(W,H)*0.85);
+  bg.addColorStop(0, '#14100c');
+  bg.addColorStop(1, '#060508');
+  cx.fillStyle = bg; cx.fillRect(0,0,W,H);
+
+  for (var i = 0; i < 140; i++) {
+    var sx = (Math.sin(i * 137.508 * Math.PI/180) * 0.5 + 0.5) * W;
+    var sy = (Math.cos(i * 97.3 * Math.PI/180) * 0.5 + 0.5) * H;
+    var pulse = 0.5 + 0.5 * Math.sin(T * (0.2 + i * 0.007) + i);
+    var r = (0.4 + Math.random() * 0.8) * (i === 0 ? 1 : 1);
+    cx.beginPath();
+    cx.arc(sx, sy, 0.4 + pulse * 0.8, 0, Math.PI*2);
+    cx.fillStyle = i % 5 === 0
+      ? 'rgba(200,175,120,'+(pulse*0.45)+')'
+      : 'rgba(180,195,225,'+(pulse*0.3)+')';
+    cx.fill();
+  }
+
+  // Ripples
+  ripples = ripples.filter(function(rp) { return rp.op > 0.01; });
+  ripples.forEach(function(rp) {
+    rp.r += 2.2; rp.op *= 0.962;
+    cx.beginPath(); cx.arc(rp.x, rp.y, rp.r, 0, Math.PI*2);
+    cx.strokeStyle = 'rgba(200,175,120,'+rp.op+')';
+    cx.lineWidth = 0.7; cx.stroke();
+  });
+}
+
+function drawCanyon(s) {
+  cx.clearRect(0,0,W,H);
+
+  // Sky
+  var sky = cx.createLinearGradient(0,0,0,H*0.52);
+  sky.addColorStop(0, s.sky_top || '#1a2d3f');
+  sky.addColorStop(1, s.sky_bot || '#3d5a42');
+  cx.fillStyle = sky; cx.fillRect(0,0,W,H*0.52);
+
+  // Sun glow
+  var gx = W*(s.sun_x||0.7), gy = H*(s.sun_y||0.15);
+  var sg = cx.createRadialGradient(gx,gy,0, gx,gy, W*0.42);
+  sg.addColorStop(0, s.light_col || 'rgba(255,215,140,0.13)');
+  sg.addColorStop(1, 'transparent');
+  cx.fillStyle = sg; cx.fillRect(0,0,W,H*0.55);
+
+  var WL = W*(s.wall_l||0.12), WR = W*(s.wall_r||0.88);
+  var step = (H*0.52) / 7;
+
+  // Left wall
+  var lj = s.ljags || [0.06,0.11,0.07,0.12,0.08,0.1,0.09];
+  cx.fillStyle = s.wall_col || '#8b6a42';
+  cx.beginPath();
+  cx.moveTo(0,0); cx.lineTo(WL*0.55, 0);
+  for (var j = 0; j < 7; j++) {
+    cx.lineTo(WL*(0.55+lj[j%lj.length]), step*j+step*0.5);
+    cx.lineTo(WL, step*(j+1));
+  }
+  cx.lineTo(WL,H); cx.lineTo(0,H); cx.closePath(); cx.fill();
+
+  // Left wall shadow
+  var lws = cx.createLinearGradient(0,0,WL*1.2,0);
+  lws.addColorStop(0,'rgba(0,0,0,0.35)'); lws.addColorStop(1,'transparent');
+  cx.fillStyle = lws; cx.fillRect(0,0,WL*1.4,H);
+
+  // Right wall
+  var rj = s.rjags || [0.09,0.06,0.11,0.07,0.1,0.08,0.09];
+  cx.fillStyle = s.wall_col || '#8b6a42';
+  cx.beginPath();
+  cx.moveTo(W,0); cx.lineTo(WR+(W-WR)*0.45, 0);
+  for (var j = 0; j < 7; j++) {
+    cx.lineTo(WR+(W-WR)*(0.45-rj[j%rj.length]), step*j+step*0.5);
+    cx.lineTo(WR, step*(j+1));
+  }
+  cx.lineTo(WR,H); cx.lineTo(W,H); cx.closePath(); cx.fill();
+
+  // Right wall shadow
+  var rws = cx.createLinearGradient(W,0,WR*0.88,0);
+  rws.addColorStop(0,'rgba(0,0,0,0.3)'); rws.addColorStop(1,'transparent');
+  cx.fillStyle = rws; cx.fillRect(WR*0.88,0,W,H);
+
+  // Ground
+  var gg = cx.createLinearGradient(0,H*0.5,0,H);
+  gg.addColorStop(0, s.ground_col||'#7a6040');
+  gg.addColorStop(0.6, '#4a3820');
+  gg.addColorStop(1, '#2a1e10');
+  cx.fillStyle = gg;
+  cx.beginPath();
+  cx.moveTo(WL,H*0.52);
+  cx.quadraticCurveTo(W*0.3,H*0.47, W/2,H*0.465);
+  cx.quadraticCurveTo(W*0.7,H*0.47, WR,H*0.52);
+  cx.lineTo(WR,H); cx.lineTo(WL,H); cx.closePath(); cx.fill();
+
+  // Stream
+  var SW = W*(s.stream_w||0.27);
+  var SX = W/2 - SW/2 + Math.sin(T*0.32)*W*0.008;
+  var stg = cx.createLinearGradient(SX,0,SX+SW,0);
+  var wc = s.water_col || '#4a7a8a';
+  stg.addColorStop(0, wc);
+  stg.addColorStop(0.5, lighten(wc, 0.22));
+  stg.addColorStop(1, wc);
+  cx.fillStyle = stg;
+  cx.beginPath();
+  cx.moveTo(SX, H*0.52);
+  cx.quadraticCurveTo(SX+SW*0.12, H*0.64, SX-W*0.018, H);
+  cx.lineTo(SX+SW+W*0.018, H);
+  cx.quadraticCurveTo(SX+SW*0.88, H*0.64, SX+SW, H*0.52);
+  cx.closePath(); cx.fill();
+
+  // Stream shimmer
+  for (var sh = 0; sh < 8; sh++) {
+    var sho = 0.06 + 0.05*Math.sin(T*0.5+sh*0.7+Math.cos(T*0.3+sh));
+    cx.beginPath();
+    cx.ellipse(
+      SX + SW*(0.1+sh*0.1) + Math.sin(T*0.25+sh)*SW*0.04,
+      H*(0.6+sh*0.047),
+      SW*(0.08+sh*0.012),
+      H*0.009,
+      0, 0, Math.PI*2
+    );
+    cx.strokeStyle = 'rgba(200,230,240,'+sho+')';
+    cx.lineWidth = 0.8; cx.stroke();
+  }
+
+  // Rocks in stream
+  var rckColors = ['rgba(160,130,90,0.5)','rgba(140,115,80,0.45)','rgba(175,145,100,0.4)'];
+  for (var rk = 0; rk < 10; rk++) {
+    cx.beginPath();
+    cx.ellipse(
+      SX + SW*(0.06+rk*0.1),
+      H*(0.56+rk*0.048),
+      SW*(0.042+rk*0.006),
+      H*0.016,
+      -0.12+rk*0.04, 0, Math.PI*2
+    );
+    cx.fillStyle = rckColors[rk%3]; cx.fill();
+  }
+
+  // The big flat sun-warmed rock (Joe's rock)
+  var bRx = SX + SW*0.22, bRy = H*0.615;
+  cx.beginPath();
+  cx.ellipse(bRx, bRy, SW*0.16, H*0.032, -0.08, 0, Math.PI*2);
+  var bRg = cx.createRadialGradient(bRx,bRy-H*0.01,0, bRx,bRy,SW*0.16);
+  bRg.addColorStop(0,'rgba(195,162,108,0.7)');
+  bRg.addColorStop(0.6,'rgba(165,132,85,0.6)');
+  bRg.addColorStop(1,'rgba(130,100,65,0.5)');
+  cx.fillStyle = bRg; cx.fill();
+  // Warm sunlight on rock
+  var sunSpot = cx.createRadialGradient(bRx+SW*0.04,bRy-H*0.01,0, bRx+SW*0.04,bRy-H*0.01,SW*0.1);
+  sunSpot.addColorStop(0,'rgba(255,220,150,'+(0.14+0.04*Math.sin(T*0.4))+')');
+  sunSpot.addColorStop(1,'transparent');
+  cx.fillStyle = sunSpot; cx.fillRect(bRx-SW*0.12,bRy-H*0.04,SW*0.24,H*0.08);
+
+  // Wooded island
+  if (s.island !== false) {
+    var IX = W/2+W*(s.island_x||0.1), IY = H*(s.island_y||0.72);
+    cx.beginPath();
+    cx.ellipse(IX,IY, W*0.068,H*0.044, 0,0,Math.PI*2);
+    cx.fillStyle = s.isle_col||'#3a5825'; cx.fill();
+    // Moss shadow
+    var isleShad = cx.createRadialGradient(IX,IY+H*0.02,0,IX,IY,W*0.068);
+    isleShad.addColorStop(0,'transparent');
+    isleShad.addColorStop(1,'rgba(0,0,0,0.25)');
+    cx.fillStyle=isleShad; cx.fillRect(IX-W*0.08,IY-H*0.06,W*0.16,H*0.12);
+    // Trees
+    var treeBase = s.isle_col||'#3a5825';
+    for (var tr = 0; tr < 6; tr++) {
+      var tx = IX + (tr-2.5)*W*0.022;
+      var ty = IY - H*(0.03+tr*0.004);
+      var sway = Math.sin(T*0.22+tr*0.8)*W*0.003;
+      cx.beginPath();
+      cx.ellipse(tx+sway, ty, W*0.015, H*(0.03+tr*0.002), sway*0.3, 0, Math.PI*2);
+      cx.fillStyle = lighten(treeBase, 0.1+tr*0.02); cx.fill();
+    }
+    // Dappled shade
+    cx.fillStyle = 'rgba(30,50,20,0.22)';
+    cx.beginPath(); cx.ellipse(IX,IY,W*0.05,H*0.028,0,0,Math.PI*2); cx.fill();
+  }
+
+  // Joanna the goanna
+  if (s.creature !== false) {
+    var CX2 = W/2+W*(s.cr_x||0.17), CY2 = H*(s.cr_y||0.635);
+    // Bask occasionally (subtle tail flick)
+    var tailFlick = Math.sin(T*0.18)*0.008;
+    cx.fillStyle='rgba(160,128,75,0.92)';
+    // Body
+    cx.beginPath();
+    cx.ellipse(CX2, CY2, W*0.032, H*0.013, 0.1, 0, Math.PI*2); cx.fill();
+    // Head
+    cx.beginPath();
+    cx.ellipse(CX2+W*0.032, CY2-H*0.006, W*0.011, H*0.01, 0.35, 0, Math.PI*2); cx.fill();
+    // Tail
+    cx.beginPath();
+    cx.moveTo(CX2-W*0.032, CY2);
+    cx.quadraticCurveTo(CX2-W*0.055, CY2+H*(0.01+tailFlick), CX2-W*0.075, CY2+H*(0.007+tailFlick));
+    cx.strokeStyle='rgba(160,128,75,0.92)'; cx.lineWidth=W*0.005; cx.stroke();
+    // Legs
+    for (var lg = 0; lg < 4; lg++) {
+      cx.beginPath();
+      cx.moveTo(CX2+W*(lg*0.014-0.02), CY2+H*0.008);
+      cx.lineTo(CX2+W*(lg*0.016-0.024), CY2+H*0.022);
+      cx.strokeStyle='rgba(155,122,70,0.75)'; cx.lineWidth=W*0.003; cx.stroke();
+    }
+  }
+
+  // Mist over stream
+  var mt = T * 0.28;
+  for (var mi = 0; mi < 3; mi++) {
+    var mg = cx.createLinearGradient(0,H*(0.52+mi*0.04),0,H*(0.65+mi*0.04));
+    mg.addColorStop(0,'transparent');
+    mg.addColorStop(0.5,'rgba(210,230,240,'+(0.03+0.015*Math.sin(mt+mi))+')');
+    mg.addColorStop(1,'transparent');
+    cx.fillStyle=mg; cx.fillRect(0,H*(0.52+mi*0.04),W,H*0.13);
+  }
+
+  // Ripples
+  ripples = ripples.filter(function(rp) { return rp.op > 0.01; });
+  ripples.forEach(function(rp) {
+    rp.r += 2.2; rp.op *= 0.962;
+    cx.beginPath(); cx.arc(rp.x, rp.y, rp.r, 0, Math.PI*2);
+    cx.strokeStyle = 'rgba(200,175,120,'+rp.op+')';
+    cx.lineWidth = 0.7; cx.stroke();
+  });
+
+  // Vignette
+  var vg = cx.createRadialGradient(W/2,H*0.5,Math.min(W,H)*0.15, W/2,H*0.5,Math.min(W,H)*0.9);
+  vg.addColorStop(0,'transparent');
+  vg.addColorStop(1,'rgba(4,3,6,0.58)');
+  cx.fillStyle=vg; cx.fillRect(0,0,W,H);
+}
+
+// Animation loop
+(function loop() {
+  rafId = requestAnimationFrame(loop);
+  T += 0.01;
+  if (scene) { drawCanyon(scene); }
+  else { drawStarfield(); }
+})();
+
+// ─── SCREEN MANAGEMENT ───────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) {
+    s.classList.remove('active');
+  });
+  var el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+// ─── TEXTAREA ────────────────────────────────────────────────────────────────
+function onType() {
+  var txt = document.getElementById('place-input').value;
+  document.getElementById('char-count').textContent = txt.length + ' / 1200';
+  document.getElementById('error-msg').textContent = '';
+}
+
+// ─── LOADING MESSAGES ─────────────────────────────────────────────────────────
+var _loadInterval = null;
+function startLoading() {
+  var i = 0;
+  document.getElementById('loader-text').textContent = LOADING_MESSAGES[0];
+  _loadInterval = setInterval(function() {
+    i = (i+1) % LOADING_MESSAGES.length;
+    document.getElementById('loader-text').textContent = LOADING_MESSAGES[i];
+  }, 2400);
+}
+function stopLoading() {
+  clearInterval(_loadInterval);
+}
+
+// ─── TYPEWRITER ───────────────────────────────────────────────────────────────
+function typewrite(el, text, speed) {
+  speed = speed || 22;
+  el.innerHTML = '';
+  var i = 0;
+  var cursor = document.createElement('span');
+  cursor.className = 'twc';
+  el.appendChild(cursor);
+  (function go() {
+    if (i <= text.length) {
+      var node = document.createTextNode(text.slice(0,i));
+      el.insertBefore(node, cursor);
+      if (el.childNodes.length > 2) el.removeChild(el.childNodes[0]);
+      i++;
+      setTimeout(go, speed + (Math.random()-0.5)*speed*0.5);
+    } else {
+      cursor.remove();
+    }
+  })();
+}
+
+// ─── API CALL ─────────────────────────────────────────────────────────────────
+var SYSTEM_PROMPT = [
+  "You are a perceptive guide for ETUDE — a longitudinal aesthetic research instrument created by Tour de Fierce Research.",
+  "A participant has described their 'happy place': the sensory environment where they feel most open and authentic.",
+  "Your task: read their description and return a JSON object that paints their space on a canyon-river canvas,",
+  "plus a poetic title, a 2-sentence atmospheric description, and a brief baseline note for researchers.",
+  "",
+  "CRITICAL: Respond with ONLY a valid JSON object. No markdown. No explanation. Just {JSON}.",
+  "",
+  "Required JSON fields (all required, use these exact keys):",
+  "{",
+  "  \"title\": \"3-6 word poetic name for this place\",",
+  "  \"description\": \"2 sentences. Sensory, present tense, second person. Make them feel they are here.\",",
+  "  \"sky_top\": \"#hex darkest sky\",",
+  "  \"sky_bot\": \"#hex horizon sky\",",
+  "  \"wall_col\": \"#hex canyon wall\",",
+  "  \"water_col\": \"#hex stream color\",",
+  "  \"ground_col\": \"#hex canyon floor\",",
+  "  \"light_col\": \"rgba(r,g,b,0.13) warm light glow\",",
+  "  \"sun_x\": 0.7,",
+  "  \"sun_y\": 0.15,",
+  "  \"wall_l\": 0.12,",
+  "  \"wall_r\": 0.88,",
+  "  \"stream_w\": 0.26,",
+  "  \"island\": true,",
+  "  \"island_x\": 0.1,",
+  "  \"island_y\": 0.72,",
+  "  \"isle_col\": \"#hex tree/island color\",",
+  "  \"creature\": true,",
+  "  \"cr_x\": 0.17,",
+  "  \"cr_y\": 0.635,",
+  "  \"ljags\": [0.06,0.1,0.07,0.11,0.08,0.09,0.07],",
+  "  \"rjags\": [0.09,0.07,0.1,0.06,0.11,0.08,0.09],",
+  "  \"baseline_notes\": \"25-35 words. Clinical notation of the psychological and somatic qualities encoded in this place — safety structure, sensory modality weighting, spatial schema, affective valence. For researcher use only.\"",
+  "}"
+].join("\n");
+
+function extractJSON(raw) {
+  var fns = [
+    function() { return JSON.parse(raw.trim()); },
+    function() { var m=raw.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]); throw 0; },
+    function() { var a=raw.indexOf('{'),b=raw.lastIndexOf('}'); if(a>-1&&b>a) return JSON.parse(raw.slice(a,b+1)); throw 0; }
+  ];
+  for (var i=0;i<fns.length;i++) { try { return fns[i](); } catch(e) {} }
+  throw new Error('Could not parse JSON from response');
+}
+
+async function generate() {
+  var input = document.getElementById('place-input').value.trim();
+  if (input.length < 25) {
+    document.getElementById('error-msg').textContent = 'Tell me a little more — describe what you see and feel.';
+    return;
+  }
+
+  if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'YOUR_API_KEY_HERE') {
+    document.getElementById('error-msg').textContent = 'Add your Anthropic API key at the top of this file to continue.';
+    return;
+  }
+
+  document.getElementById('gen-btn').disabled = true;
+  showScreen('s-loading');
+  startLoading();
+
+  try {
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 800,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: 'My happy place: ' + input }]
+      })
+    });
+
+    if (!response.ok) {
+      var errBody = await response.text();
+      throw new Error('API ' + response.status + ': ' + errBody.slice(0,150));
+    }
+
+    var data = await response.json();
+    if (data.error) throw new Error(data.error.message || 'API error');
+
+    var rawText = (data.content || []).map(function(b) { return b.text || ''; }).join('');
+    if (!rawText) throw new Error('Empty response from API');
+
+    var parsed = extractJSON(rawText);
+
+    stopLoading();
+
+    // Store baseline data
+    window._etudeBaseline = {
+      description: input,
+      scene: parsed,
+      timestamp: new Date().toISOString(),
+      session_id: 'etude_' + Date.now()
+    };
+    document.getElementById('baseline-store').textContent = JSON.stringify(window._etudeBaseline, null, 2);
+
+    // Render the scene
+    scene = parsed;
+    document.getElementById('cap-title').textContent = parsed.title || 'Your place';
+    typewrite(document.getElementById('cap-desc'), parsed.description || 'The space opens around you.');
+    document.getElementById('cap-meta').textContent =
+      'Baseline captured · ' + new Date().toLocaleTimeString();
+    document.getElementById('profile-badge').classList.add('show');
+
+    // Fade out all screens, show caption
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    setTimeout(function() {
+      document.getElementById('scene-caption').classList.add('show');
+    }, 400);
+
+  } catch(err) {
+    stopLoading();
+    console.error('ETUDE error:', err);
+    document.getElementById('gen-btn').disabled = false;
+    showScreen('s-describe');
+    document.getElementById('error-msg').textContent = 'Something went wrong: ' + err.message;
+  }
+}
+
+// ─── BEGIN ETUDE ──────────────────────────────────────────────────────────────
+function beginEtude() {
+  // This is where the first ETUDE encounter would begin.
+  // For now, shows a placeholder. Future: load the first aesthetic transmission.
+  var btn = document.getElementById('begin-btn');
+  btn.textContent = 'Preparing first encounter…';
+  btn.disabled = true;
+
+  setTimeout(function() {
+    // Placeholder — replace with first encounter logic
+    alert(
+      'ETUDE baseline established.\n\n' +
+      'Place: ' + (window._etudeBaseline && window._etudeBaseline.scene.title) + '\n' +
+      'Session: ' + (window._etudeBaseline && window._etudeBaseline.session_id) + '\n\n' +
+      'The first aesthetic encounter begins here.\n' +
+      '(Next build: encounter layer loads over this scene.)'
+    );
+    btn.textContent = 'I am here. Begin ETUDE →';
+    btn.disabled = false;
+  }, 800);
+}
+</script>
+</body>
+</html>
